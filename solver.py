@@ -117,8 +117,13 @@ update_button = Button(tela, text="Atualizar", command=atualiza_listas)
 update_button.grid(row=13, column=0, columnspan=5, pady=10)
 
 # Rótulo para exibir a palavra sugerida
-label_palavra_sugerida = Label(tela, text=f'Palavra Sugerida: {palavra_sugerida}')
+label_palavra_sugerida = Label(
+    tela, 
+    text=f'Palavra Sugerida: {palavra_sugerida}', 
+    font=("Arial", 16)  
+)
 label_palavra_sugerida.grid(row=14, column=0, columnspan=5, pady=10)
+
 
 # Inicia o loop principal da interface gráfica
 tela.mainloop()
