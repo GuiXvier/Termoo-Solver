@@ -1,13 +1,12 @@
-import tkinter as tk
 from tkinter import *
 import random
-
+    
 palavras_igual_5 = []
 
 with open('palavras_igual_5.txt', "r") as word_list:
     words = word_list.read().split('\n')
     for word in words:
-        palavras_igual_5.append(word)
+        palavras_igual_5.append(word.lower())
 
 # Configuração inicial da janela
 tela = Tk()
@@ -18,20 +17,71 @@ lista_letras_amarelas = []
 lista_letras_cinzas = []
 
 pos_letras_verdes = ['', '', '', '', '']
+pos_letras_amarelas = ['', '', '', '', '']
 
 palavra_sugerida = 'areio'
+
+def filtro_letras_verdes(palavra):
+    """
+    Filtro para validar palavras com base nas letras verdes.
+    """
+    
+    pontos = 0
+    
+    # Verifica cada posição da palavra
+    for i, letra in enumerate(palavra):
+        # Se não há letra verde nessa posição, ignorar
+        if pos_letras_verdes[i] == '':
+            continue
+        # Se a letra coincide com a posição verde, adicionar pontos
+        elif letra == pos_letras_verdes[i]:
+            pontos += 1
+    
+    # Adiciona a palavra se ela satisfizer todas as condições
+    if pontos == sum(1 for letra in pos_letras_verdes if letra != ''):
+        return True
+    else:
+        return False           
+
+def filtro_letras_amarelas(palavra):
+    """
+    Verifica se a palavra satisfaz as condições para as letras amarelas.
+    """
+    for i, letra in enumerate(palavra):
+        # Verifica se a letra amarela está na mesma posição que na lista de amarelas
+        if pos_letras_amarelas[i] != '' and pos_letras_amarelas[i] == letra:
+            return False
+
+    # Verifica se as letras amarelas estão presentes em posições válidas
+    for i, letra_amarela in enumerate(pos_letras_amarelas):
+        if letra_amarela != '' and letra_amarela not in palavra:
+            return False
+
+    return True
+
+def filtro_letras_cinzas(palavra):
+    """
+    Verifica se a palavra contém letras cinzas em posições inválidas.
+    """
+    for i, letra in enumerate(palavra):
+        # Verifica se a letra está na lista cinza
+        if letra in lista_letras_cinzas:
+            # Permite se a letra também está nas posições verdes
+            if letra in lista_letras_verdes and pos_letras_verdes[i] == letra:
+                continue
+            # Permite se a letra está como amarela, mas não na posição
+            if letra in lista_letras_amarelas and pos_letras_amarelas[i] != letra:
+                continue
+            # Caso contrário, é inválido
+            return False
+    return True
+
 
 def atualiza_listas():
     
     global palavra_sugerida
-    # Função clear() apaga todos os elementos da lista
-    lista_letras_verdes.clear()
-    """
-        Se lê "Para cada índice i e valor entrada dentro da lista entradas_verdes"
-        
-        enumerate(entradas_verdes) => A função enumerate() retorna uma sequência de pares (índice, valor) 
-        para cada elemento da lista entradas_verdes.
-    """
+    global palavras_igual_5
+    
     for i, entrada in enumerate(entradas_verdes):
         letra = entrada.get().lower()  # Convertendo para minúsculas
         
@@ -39,10 +89,11 @@ def atualiza_listas():
         pos_letras_verdes[i] = letra if letra else ''
         if letra:
             lista_letras_verdes.append(letra)
-
+            
     # Atualiza lista de letras amarelas
-    for entrada in entradas_amarelas:
+    for i, entrada in enumerate(entradas_amarelas):
         letra = entrada.get().lower()
+        pos_letras_amarelas[i] = letra if letra else ''
         if letra:
             lista_letras_amarelas.append(letra)
 
@@ -51,72 +102,22 @@ def atualiza_listas():
         letra = entrada.get().lower()
         if letra:
             lista_letras_cinzas.append(letra)
+            
 
    # Filtra palavras baseadas nas condições
     palavras_filtradas = []
+    
     for palavra in palavras_igual_5:
-        # Ignorar palavras que não têm exatamente 5 caracteres
-        if len(palavra) != 5:
-            continue
-
-        # Filtro de letras verdes (posição exata ou contagem suficiente)
-        """
-            Para cada índice i de 0 a 4 (ou seja, nas 5 posições), verifica se a letra na posição i da palavra (palavra[i]) 
-            é igual à letra verde correspondente na mesma posição (pos_letras_verdes[i]) ou se não há uma letra definida 
-            para aquela posição (ou seja, pos_letras_verdes[i] é uma string vazia).
-        """
-        letras_verdes_validas = all(
-            palavra[i] == pos_letras_verdes[i] or pos_letras_verdes[i] == '' 
-            for i in range(5)
-        )
-        
-        # Se a palavra não passar no filtro de letras verdes, então pule para a próxima palavra
-        if not letras_verdes_validas:
-            continue
-
-        # Filtro de letras amarelas (presente, mas em qualquer posição, exceto na posição verde)
-        letras_amarelas_validas = True
-        for letra in lista_letras_amarelas:
-            if letra in palavra:
-                # Certificar-se de que a letra amarela não está na posição onde é verde
-                for i in range(5):
-                    if pos_letras_verdes[i] == letra and palavra[i] == letra:
-                        letras_amarelas_validas = False
-                        break
-                # Nova verificação: garantir que a letra amarela não ocupe a mesma posição de uma outra letra amarela
-                for i in range(5):
-                    if palavra[i] == letra and letra == lista_letras_amarelas[0]:  # Comparando com a letra amarela que já foi processada
-                        if i == lista_letras_amarelas.index(letra):  # Se estiver na mesma posição de outra letra amarela, invalidar
-                            letras_amarelas_validas = False
-                            break
-
-            if not letras_amarelas_validas:
-                break
-
-        if letras_amarelas_validas:
-            # Filtro de letras cinzas (não pode conter)
-            if all(letra not in palavra for letra in lista_letras_cinzas):
-                palavras_filtradas.append(palavra)
-
-        # Filtro de letras cinzas (não pode conter excessos além do esperado)
-        """
-            Garante que a quantidade de vezes que a letra aparece na palavra não seja maior do que o número total de vezes que essa letra pode 
-            aparecer, levando em consideração tanto as letras amarelas (que podem aparecer em qualquer posição) 
-            quanto as letras verdes (que devem aparecer em uma posição específica).
-        """
-        letras_cinzas_validas = all(
-            palavra.count(letra) <= lista_letras_amarelas.count(letra) + pos_letras_verdes.count(letra)
-            for letra in lista_letras_cinzas
-        )
-
-        if letras_cinzas_validas:
-            palavras_filtradas.append(palavra)
+       if (filtro_letras_verdes(palavra) and filtro_letras_amarelas(palavra) and filtro_letras_cinzas(palavra)):
+           palavras_filtradas.append(palavra)
+           
+    palavras_igual_5 = palavras_filtradas
 
                     
     print(lista_letras_verdes, lista_letras_amarelas, lista_letras_cinzas)
-    print(pos_letras_verdes)
+    print(pos_letras_verdes, pos_letras_amarelas)
     
-    palavra_sugerida = palavras_filtradas[0]                
+    palavra_sugerida = palavras_filtradas[random.randint(0, len(palavras_filtradas) - 1)]                
     label_palavra_sugerida.config(text=f'Palavra Sugerida: {palavra_sugerida}')
 
 # Mensagem de boas-vindas
