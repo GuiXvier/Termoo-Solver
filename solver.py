@@ -1,123 +1,64 @@
 from tkinter import *
 import random
-    
-palavras_igual_5 = []
 
+# Lê apenas palavras com exatamente 5 letras no momento da leitura
 with open('palavras_igual_5.txt', "r") as word_list:
-    words = word_list.read().split('\n')
-    for word in words:
-        palavras_igual_5.append(word.lower())
+    palavras_igual_5 = [word.lower() for word in word_list.read().split('\n') if len(word) == 5]
 
-# Configuração inicial da janela
+# Configuração inicial
 tela = Tk()
 tela.title("Termoo Solver")
 
-lista_letras_verdes = []
-lista_letras_amarelas = []
-lista_letras_cinzas = []
-
 pos_letras_verdes = ['', '', '', '', '']
 pos_letras_amarelas = ['', '', '', '', '']
+lista_letras_cinzas = []
 
 palavra_sugerida = 'areio'
 
-def filtro_letras_verdes(palavra):
-    """
-    Filtro para validar palavras com base nas letras verdes.
-    """
-    
-    pontos = 0
-    
-    # Verifica cada posição da palavra
+def valida_letras_verdes(palavra):
+    return all(
+        pos_letras_verdes[i] == '' or pos_letras_verdes[i] == letra
+        for i, letra in enumerate(palavra)
+    )
+
+def valida_letras_amarelas(palavra):
     for i, letra in enumerate(palavra):
-        # Se não há letra verde nessa posição, ignorar
-        if pos_letras_verdes[i] == '':
-            continue
-        # Se a letra coincide com a posição verde, adicionar pontos
-        elif letra == pos_letras_verdes[i]:
-            pontos += 1
-    
-    # Adiciona a palavra se ela satisfizer todas as condições
-    if pontos == sum(1 for letra in pos_letras_verdes if letra != ''):
-        return True
-    else:
-        return False           
-
-def filtro_letras_amarelas(palavra):
-    """
-    Verifica se a palavra satisfaz as condições para as letras amarelas.
-    """
-    for i, letra in enumerate(palavra):
-        # Verifica se a letra amarela está na mesma posição que na lista de amarelas
-        if pos_letras_amarelas[i] != '' and pos_letras_amarelas[i] == letra:
+        if pos_letras_amarelas[i] and pos_letras_amarelas[i] == letra:
             return False
+    return all(
+        letra in palavra for letra in pos_letras_amarelas if letra
+    )
 
-    # Verifica se as letras amarelas estão presentes em posições válidas
-    for i, letra_amarela in enumerate(pos_letras_amarelas):
-        if letra_amarela != '' and letra_amarela not in palavra:
-            return False
-
-    return True
-
-def filtro_letras_cinzas(palavra):
-    """
-    Verifica se a palavra contém letras cinzas em posições inválidas.
-    """
-    for i, letra in enumerate(palavra):
-        # Verifica se a letra está na lista cinza
-        if letra in lista_letras_cinzas:
-            # Permite se a letra também está nas posições verdes
-            if letra in lista_letras_verdes and pos_letras_verdes[i] == letra:
-                continue
-            # Permite se a letra está como amarela, mas não na posição
-            if letra in lista_letras_amarelas and pos_letras_amarelas[i] != letra:
-                continue
-            # Caso contrário, é inválido
-            return False
-    return True
-
+def valida_letras_cinzas(palavra):
+    return all(
+        letra not in palavra or
+        (letra in pos_letras_verdes or letra in pos_letras_amarelas)
+        for letra in lista_letras_cinzas
+    )
 
 def atualiza_listas():
-    
     global palavra_sugerida
-    global palavras_igual_5
-    
-    for i, entrada in enumerate(entradas_verdes):
-        letra = entrada.get().lower()  # Convertendo para minúsculas
-        
-        # Se letra != '' armazene essa letra na posição i da lista que contem as letras
-        pos_letras_verdes[i] = letra if letra else ''
-        if letra:
-            lista_letras_verdes.append(letra)
-            
-    # Atualiza lista de letras amarelas
-    for i, entrada in enumerate(entradas_amarelas):
-        letra = entrada.get().lower()
-        pos_letras_amarelas[i] = letra if letra else ''
-        if letra:
-            lista_letras_amarelas.append(letra)
 
-    # Atualiza lista de letras cinzas
+    for i, entrada in enumerate(entradas_verdes):
+        pos_letras_verdes[i] = entrada.get().lower()
+
+    for i, entrada in enumerate(entradas_amarelas):
+        pos_letras_amarelas[i] = entrada.get().lower()
+
+    lista_letras_cinzas.clear()
     for entrada in entradas_cinzas:
         letra = entrada.get().lower()
         if letra:
             lista_letras_cinzas.append(letra)
-            
 
-   # Filtra palavras baseadas nas condições
-    palavras_filtradas = []
-    
-    for palavra in palavras_igual_5:
-       if (filtro_letras_verdes(palavra) and filtro_letras_amarelas(palavra) and filtro_letras_cinzas(palavra)):
-           palavras_filtradas.append(palavra)
-           
-    palavras_igual_5 = palavras_filtradas
+    palavras_filtradas = [
+        palavra for palavra in palavras_igual_5
+        if valida_letras_verdes(palavra)
+        and valida_letras_amarelas(palavra)
+        and valida_letras_cinzas(palavra)
+    ]
 
-                    
-    print(lista_letras_verdes, lista_letras_amarelas, lista_letras_cinzas)
-    print(pos_letras_verdes, pos_letras_amarelas)
-    
-    palavra_sugerida = palavras_filtradas[random.randint(0, len(palavras_filtradas) - 1)]                
+    palavra_sugerida = random.choice(palavras_filtradas) if palavras_filtradas else 'Nenhuma palavra encontrada'
     label_palavra_sugerida.config(text=f'Palavra Sugerida: {palavra_sugerida}')
 
 # Mensagem de boas-vindas
